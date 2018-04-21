@@ -13,12 +13,13 @@ import javax.websocket.server.ServerEndpoint;
 //w kontekœcie aplikacji
 //i adres URI u¿ywany przez klientów do komunikacji
 @ApplicationScoped
-@ServerEndpoint("/websocketendpoint")
+@ServerEndpoint(value = "/websocketendpoint")
 public class WebSocketEndpoint {
 	// adnotacja metody, która bêdzie wo³ana
 	// przy ka¿dym nawi¹zaniu po³¹czenia przez klienta
 	@OnOpen
 	public void onOpen(Session session) {
+		System.out.println("Tu jeszcze jest");
 	}
 
 	// adnotacja metody, która bêdzie wo³ana

@@ -5,12 +5,12 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="580.0" prefWidth="698.0" xmlns="http://javafx.com/javafx/8.0.141" xmlns:fx="http://javafx.com/fxml/1" fx:controller="prozWebChat.WebChatStageController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="580.0" prefWidth="698.0" xmlns="http://javafx.com/javafx/8.0.141" xmlns:fx="http://javafx.com/fxml/1" fx:controller="prozWebChat.WebSocketChatStageControler">
    <children>
-      <TextField layoutX="125.0" layoutY="45.0" prefHeight="31.0" prefWidth="425.0" />
-      <TextArea layoutX="125.0" layoutY="111.0" prefHeight="316.0" prefWidth="425.0" />
-      <TextField layoutX="125.0" layoutY="459.0" prefHeight="31.0" prefWidth="425.0" />
-      <Button layoutX="578.0" layoutY="45.0" mnemonicParsing="false" text="Set" />
-      <Button layoutX="566.0" layoutY="459.0" mnemonicParsing="false" text="Send\" />
+      <TextField fx:id = "userTextField" layoutX="125.0" layoutY="45.0" prefHeight="31.0" prefWidth="425.0" />
+      <TextArea fx:id="chatTextArea" editable="false" layoutX="125.0" layoutY="111.0" prefHeight="316.0" prefWidth="425.0" />
+      <TextField fx:id="messageTextField" layoutX="125.0" layoutY="459.0" prefHeight="31.0" prefWidth="425.0" />
+      <Button fx:id="btnSet" layoutX="578.0" layoutY="45.0" mnemonicParsing="false" text="Set" onAction="#btnSet_Click" />
+      <Button fx:id="btnSend" layoutX="566.0" layoutY="459.0" mnemonicParsing="false" text="Send" onAction="#btnSend_Click" />
    </children>
 </AnchorPane>
