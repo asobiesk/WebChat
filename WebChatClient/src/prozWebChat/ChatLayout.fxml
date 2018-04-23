@@ -1,16 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.Cursor?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
 
 <AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="580.0" prefWidth="698.0" xmlns="http://javafx.com/javafx/8.0.141" xmlns:fx="http://javafx.com/fxml/1" fx:controller="prozWebChat.WebSocketChatStageControler">
-   <children>
-      <TextField fx:id = "userTextField" layoutX="125.0" layoutY="45.0" prefHeight="31.0" prefWidth="425.0" />
-      <TextArea fx:id="chatTextArea" editable="false" layoutX="125.0" layoutY="111.0" prefHeight="316.0" prefWidth="425.0" />
-      <TextField fx:id="messageTextField" layoutX="125.0" layoutY="459.0" prefHeight="31.0" prefWidth="425.0" />
-      <Button fx:id="btnSet" layoutX="578.0" layoutY="45.0" mnemonicParsing="false" text="Set" onAction="#btnSet_Click" />
-      <Button fx:id="btnSend" layoutX="566.0" layoutY="459.0" mnemonicParsing="false" text="Send" onAction="#btnSend_Click" />
-   </children>
+	<children>
+		<TextField fx:id="userTextField" layoutX="125.0" layoutY="45.0" onKeyPressed="#loginKeyClicked" prefHeight="31.0" prefWidth="425.0" />
+		<TextArea fx:id="chatTextArea" editable="false" layoutX="125.0" layoutY="111.0" prefHeight="316.0" prefWidth="425.0" wrapText="true">
+			<cursor>
+				<Cursor fx:constant="DEFAULT" />
+			</cursor>
+		</TextArea>
+		<TextField fx:id="messageTextField" layoutX="125.0" layoutY="459.0" onKeyPressed="#messageKeyClicked" prefHeight="31.0" prefWidth="425.0" promptText="Type your message here!" />
+		<Button fx:id="btnSet" layoutX="578.0" layoutY="45.0" mnemonicParsing="false" onAction="#btnSet_Click" text="Set" />
+		<Button fx:id="btnSend" disable="true" layoutX="566.0" layoutY="459.0" mnemonicParsing="false" onAction="#btnSend_Click" text="Send" />
+		<Label layoutX="37.0" layoutY="48.0" text="Username:">
+			<font>
+				<Font size="16.0" />
+			</font>
+		</Label>
+		<Label layoutX="50.0" layoutY="248.0" text="Chat:" />
+		<Label layoutX="36.0" layoutY="464.0" text="Message:" />
+      <Button fx:id="btnSound" layoutX="42.0" layoutY="517.0" mnemonicParsing="false" onAction="#btnSound_Click" text="Sound ON" />
+      <Button fx:id="btnFile" disable="true" layoutX="566.0" layoutY="517.0" mnemonicParsing="false" onAction="#btnFile_Clicked" prefHeight="31.0" prefWidth="90.0" text="Attach FIle" />
+      <Label fx:id="lblFile" layoutX="176.0" layoutY="522.0" prefHeight="21.0" prefWidth="253.0" text="File received. Click do download." visible="false" />
+      <Button fx:id="btnDownload" layoutX="448.0" layoutY="517.0" mnemonicParsing="false" text="Download" visible="false" onAction="#btnDownload_Click" />
+	</children>
 </AnchorPane>

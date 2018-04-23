@@ -1,6 +1,8 @@
 package prozWebChat;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
@@ -9,35 +11,25 @@ import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
-//adnotacja deklaruje klasê gniazda serwerowego
-//w kontekœcie aplikacji
-//i adres URI u¿ywany przez klientów do komunikacji
 @ApplicationScoped
 @ServerEndpoint(value = "/websocketendpoint")
 public class WebSocketEndpoint {
-	// adnotacja metody, która bêdzie wo³ana
-	// przy ka¿dym nawi¹zaniu po³¹czenia przez klienta
+
 	@OnOpen
 	public void onOpen(Session session) {
 		System.out.println("Tu jeszcze jest");
 	}
 
-	// adnotacja metody, która bêdzie wo³ana
-	// przy ka¿dym zamkniêciu po³¹czenia przez klienta
 	@OnClose
 	public void onClose(Session session) {
 	}
 
-	// adnotacja metody, która bêdzie wo³ana po wyst¹pieniu b³êdu
 	@OnError
 	public void onError(Throwable error) {
 	}
 
-	// adnotacja metody, która bêdzie wo³ana po ka¿dym odbiorze wiadomoœci
 	@OnMessage
 	public void onMessage(String message, Session session) {
-		// rozg³oszenie otrzymanej wiadomoœci
-		// do wszystkich pod³¹czonych klientów
 		try {
 			for (Session oneSession : session.getOpenSessions()) {
 				if (oneSession.isOpen()) {
@@ -47,5 +39,22 @@ public class WebSocketEndpoint {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	@OnMessage
+	public void onMessage(ByteBuffer buffer, Session session) {
+		System.out.println("Serwer: dodarl plik");
+		try {
+			for (Session oneSession : session.getOpenSessions()) {
+				if (oneSession.isOpen()) {
+					System.out.println("Wys³ano plik");
+					oneSession.getBasicRemote().sendBinary(buffer);
+					System.out.println("Serwer: wyslallem plik");
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 	}
 } // public class WebSocketEndpoint
