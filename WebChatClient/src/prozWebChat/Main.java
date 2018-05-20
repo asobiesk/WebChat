@@ -6,7 +6,6 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.layout.AnchorPane;
-import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
@@ -20,7 +19,7 @@ public class Main extends Application {
 			primaryStage.setScene(scene);
 			primaryStage.setResizable(false);
 			primaryStage.setTitle("PROZ Web Chat");
-			primaryStage.setOnHiding(e -> primaryStage_Hiding(e, fxmlLoader));
+			//primaryStage.setOnHiding(e -> primaryStage_Hiding(e, fxmlLoader));
 			primaryStage.show();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -31,9 +30,9 @@ public class Main extends Application {
 		try {
 			((WebSocketChatStageControler) fxmlLoader.getController())
 					.closeSession(new CloseReason(CloseCodes.NORMAL_CLOSURE, "Stage is hiding"));
-		} catch (NullPointerException n) { //in there is no connection to close
+		} catch (NullPointerException n) { // in there is no connection to close
 		}
 
 	}
-	
+
 }

@@ -6,22 +6,9 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.RandomAccessFile;
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.file.Files;
 
-import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
-import javafx.scene.image.ImageView;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
-import javafx.stage.FileChooser;
-import java.awt.Desktop;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
@@ -31,12 +18,22 @@ import javax.websocket.ClientEndpoint;
 import javax.websocket.CloseReason;
 import javax.websocket.ContainerProvider;
 import javax.websocket.DeploymentException;
+import javax.websocket.EncodeException;
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
 import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.WebSocketContainer;
+
+import javafx.fxml.FXML;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.stage.FileChooser;
 
 public class WebSocketChatStageControler {
 
@@ -89,7 +86,7 @@ public class WebSocketChatStageControler {
 	}
 
 	@FXML
-	private void btnSet_Click() {
+	private void btnSet_Click() throws IOException {
 		System.out.println("Set");
 		if (userTextField.getText().isEmpty()) {
 			return;
@@ -99,6 +96,8 @@ public class WebSocketChatStageControler {
 		btnSet.setDisable(true);
 		btnFile.setDisable(false);
 		userTextField.setDisable(true);
+		webSocketClient.sendUsername(user);
+		
 	}
 
 	@FXML
@@ -133,7 +132,6 @@ public class WebSocketChatStageControler {
 				FileOutputStream output = new FileOutputStream(directory.getAbsolutePath());
 				output.write(storedFile.array());
 				output.close();
-				
 
 			}
 		}
@@ -148,13 +146,13 @@ public class WebSocketChatStageControler {
 	}
 
 	@FXML
-	private void loginKeyClicked(KeyEvent key) {
+	private void loginKeyClicked(KeyEvent key) throws IOException {
 		if (key.getCode() == KeyCode.ENTER && !btnSet.isDisabled())
 			btnSet_Click();
 	}
 
 	@FXML
-	private void btnFile_Clicked() throws IOException {
+	private void btnFile_Clicked() throws IOException, EncodeException {
 		System.out.println("Dzia³a!!!!!");
 		FileChooser fileChooser = new FileChooser();
 		fileChooser.setTitle("Open Resource File");
@@ -220,9 +218,7 @@ public class WebSocketChatStageControler {
 		private Session session;
 
 		public WebSocketClient() {
-			System.out.println("Konstruktor");
 			connectToWebSocket();
-			System.out.println("Konstruktor2");
 
 		}
 
@@ -245,8 +241,8 @@ public class WebSocketChatStageControler {
 
 		@OnMessage
 		public void onMessage(String message, Session session) {
-			System.out.println("Message was received");
 			chatTextArea.setText(chatTextArea.getText() + message + "\n");
+			System.out.println("Message was received");
 			if (sound) {
 				clip.start();
 				clip.setMicrosecondPosition(0);
@@ -256,12 +252,15 @@ public class WebSocketChatStageControler {
 
 		@OnMessage
 		@FXML
-		public void onMessage(ByteBuffer buffer, Session session) throws IOException {
+		public void onMessage(ByteBuffer transferedFile, Session session) throws IOException {
 			System.out.println("File was received");
 			lblFile.setVisible(true);
 			btnDownload.setVisible(true);
-			System.out.println("Rozmiar bufora: " + buffer.capacity());
-			storedFile = buffer;
+			storedFile = transferedFile;
+			if (sound) {
+				clip.start();
+				clip.setMicrosecondPosition(0);
+			}
 
 		}
 
@@ -277,17 +276,28 @@ public class WebSocketChatStageControler {
 
 		public void sendMessage(String message) {
 			try {
+				chatTextArea.positionCaret(chatTextArea.getText().length());
 				System.out.println("Message was sent: " + message);
 				session.getBasicRemote().sendText(user + ": " + message);
+
 			} catch (IOException ex) {
 				ex.printStackTrace();
 				System.out.println("Jest error");
 			}
 		}
+		
+		public void sendUsername(String name) throws IOException
+		{
+			session.getBasicRemote().sendText(name);
+			System.out.println("Wysy³am login systemowi!");
 
-		public void sendMessage(ByteBuffer buffer, String name) throws IOException {
-			session.getBasicRemote().sendBinary(buffer);
+		}
+
+		public void sendMessage(ByteBuffer transferedFile, String name) throws IOException, EncodeException {
+			session.getBasicRemote().sendBinary(transferedFile);
+			session.getBasicRemote().sendText(name);
 			System.out.println("File was send: " + name);
+			chatTextArea.positionCaret(chatTextArea.getText().length());
 		}
 	} // public class WebSocketClient
 } // public class WebSocketChatStageControler
