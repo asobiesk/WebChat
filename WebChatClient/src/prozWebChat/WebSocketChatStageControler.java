@@ -26,6 +26,7 @@ import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.WebSocketContainer;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -61,6 +62,7 @@ public class WebSocketChatStageControler {
 	private Clip clip = null;
 	private boolean sound = true;
 	private ByteBuffer storedFile = null;
+
 
 	@FXML
 	private void initialize() {
@@ -216,6 +218,8 @@ public class WebSocketChatStageControler {
 	@ClientEndpoint
 	public class WebSocketClient {
 		private Session session;
+		private boolean fileJustReceived = false;
+
 
 		public WebSocketClient() {
 			connectToWebSocket();
@@ -241,6 +245,14 @@ public class WebSocketChatStageControler {
 
 		@OnMessage
 		public void onMessage(String message, Session session) {
+			if(fileJustReceived)
+			{
+				fileJustReceived = false;
+				String filename = message;
+				Platform.runLater(() -> {
+					lblFile.setText("File received: " + filename);
+				});
+			}
 			chatTextArea.setText(chatTextArea.getText() + message + "\n");
 			System.out.println("Message was received");
 			if (sound) {
@@ -254,6 +266,7 @@ public class WebSocketChatStageControler {
 		@FXML
 		public void onMessage(ByteBuffer transferedFile, Session session) throws IOException {
 			System.out.println("File was received");
+			fileJustReceived = true;
 			lblFile.setVisible(true);
 			btnDownload.setVisible(true);
 			storedFile = transferedFile;

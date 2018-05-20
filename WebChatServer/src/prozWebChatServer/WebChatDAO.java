@@ -4,12 +4,11 @@ import java.sql.*;
 import java.util.Date;
 import java.util.HashMap;
 
-import oracle.jdbc.*;
 import oracle.jdbc.pool.OracleDataSource;
 
 public class WebChatDAO {
-	private static final String user = "****";
-	private static final String password = "****";
+	private static final String user = "asobiesk";
+	private static final String password = "LtM6rhz";
 	private static final String database = "jdbc:oracle:thin:asobiesk/asobiesk@//localhost:1521/xe";
 
 	private Connection conn = null;
@@ -31,14 +30,23 @@ public class WebChatDAO {
 		}
 	}
 
-	public void LogUser(String login) throws SQLException {
+	public void LogUser(String login, String sessionId) throws SQLException {
 		try {
 			System.out.println("Loguje usera do bd");
 			java.util.Date date = new Date();
 			Object param = new java.sql.Timestamp(date.getTime());
-			PreparedStatement ps = conn.prepareStatement("INSERT INTO \"User\"(login, logindate) VALUES (?,?)");
-			ps.setString(1, login);
-			ps.setObject(2, param);
+			Statement statement = conn.createStatement();
+			ResultSet resultSet = statement.executeQuery("Select Max(userid) from \"User\"");
+			resultSet.next();
+			int maxId = resultSet.getInt(1);
+			++maxId;
+			Integer logMaxID = new Integer(maxId);
+			ids.put(sessionId, logMaxID); // log user id to the ids hashmap
+			PreparedStatement ps = conn
+					.prepareStatement("INSERT INTO \"User\"(userid, login, logindate) VALUES (?,?,?)");
+			ps.setInt(1, maxId);
+			ps.setString(2, login);
+			ps.setObject(3, param);
 			ps.executeUpdate();
 		} catch (SQLException e) {
 			System.out.println("Failed to log User: " + e.getMessage());
@@ -46,33 +54,36 @@ public class WebChatDAO {
 
 	}
 
-	public void LogMessage(String login, String message) {
+	public void LogMessage(String login, String message, String sessionId) {
 		try {
 			System.out.println("Loguje wiadomoœæ do bd");
 			java.util.Date date = new Date();
 			Object param = new java.sql.Timestamp(date.getTime());
-			PreparedStatement ps = conn
-					.prepareStatement("INSERT INTO message(\"Date\", user_login, \"content\") VALUES (?,?,?)");
+			int userId = ids.get(sessionId).intValue();
+			PreparedStatement ps = conn.prepareStatement(
+					"INSERT INTO message(\"Date\",user_userid, user_login, \"content\") VALUES (?,?,?,?)");
 			ps.setObject(1, param);
-			ps.setString(2, login);
-			ps.setString(3, message);
+			ps.setInt(2, userId);
+			ps.setString(3, login);
+			ps.setString(4, message);
 			ps.executeUpdate();
 		} catch (SQLException e) {
 			System.out.println("Failed to log user: " + e.getMessage());
 		}
-
 	}
 
-	public void LogFile(String login, String Filename) {
+	public void LogFile(String login, String Filename, String sessionId) {
 		try {
 			System.out.println("Loguje plik do bd");
 			java.util.Date date = new Date();
 			Object param = new java.sql.Timestamp(date.getTime());
+			int userId = ids.get(sessionId).intValue();
 			PreparedStatement ps = conn
-					.prepareStatement("INSERT INTO \"File\"(\"Date\", filename, user_login) VALUES (?,?,?)");
+					.prepareStatement("INSERT INTO \"File\"(\"Date\",userid, filename, user_login) VALUES (?,?,?,?)");
 			ps.setObject(1, param);
-			ps.setString(2, Filename);
-			ps.setString(3, login);
+			ps.setInt(2, userId);
+			ps.setString(3, Filename);
+			ps.setString(4, login);
 			ps.executeUpdate();
 		} catch (SQLException e) {
 			System.out.println("Failed to log file: " + e.getMessage());

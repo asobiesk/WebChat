@@ -4,10 +4,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.nio.ByteBuffer;
 import java.sql.*;
-import oracle.jdbc.*;
-import oracle.jdbc.pool.OracleDataSource;
 import javax.enterprise.context.ApplicationScoped;
-import javax.websocket.EncodeException;
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
 import javax.websocket.OnMessage;
@@ -32,7 +29,7 @@ public class WebSocketEndpoint {
 		String UserID = session.getId();
 		users.put(UserID, null);
 		System.out.println("Zalogowa³em sesje z nullem!");
-		
+
 	}
 
 	@OnClose
@@ -48,21 +45,38 @@ public class WebSocketEndpoint {
 	public void onMessage(String message, Session session) throws SQLException {
 		try {
 			System.out.println("onMessage String");
-			if (FileJustReceived) {
+
+			if (FileJustReceived) { //Server received a filename -> file handling
 				System.out.println("Plik");
 				FileJustReceived = false;
 				String UserLogin = users.get(session.getId());
+				DAO.LogFile(UserLogin, message, session.getId());
 				
-				DAO.LogFile(UserLogin, message);
-			} else if (users.get(session.getId()) == null) {
+				try {
+					for (Session oneSession : session.getOpenSessions()) {
+						if (oneSession.isOpen() && !oneSession.getId().equals(session.getId())) {
+							oneSession.getBasicRemote().sendText(message);
+						}
+					}
+					return;
+					
+					
+					} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+
+			else if (users.get(session.getId()) == null) { //Server received a user's login -> user handling
 				System.out.println("Dosta³em w³aœnie login!");
 				users.replace(session.getId(), message);
-				DAO.LogUser(message);
+				DAO.LogUser(message, session.getId());
 				return;
-			} else {
+			} 
+			
+			else { //Server received a normal message -> message handling
 				System.out.println("Normalna wiadomoœæ");
 				String UserLogin = users.get(session.getId());
-				DAO.LogMessage(UserLogin, message);
+				DAO.LogMessage(UserLogin, message, session.getId());
 			}
 			for (Session oneSession : session.getOpenSessions()) {
 				if (oneSession.isOpen()) {
@@ -80,8 +94,6 @@ public class WebSocketEndpoint {
 		System.out.println("Serwer: dodarl plik");
 
 		try {
-			String login = users.get(session.getId());
-
 			for (Session oneSession : session.getOpenSessions()) {
 				if (oneSession.isOpen() && !oneSession.getId().equals(session.getId())) {
 					System.out.println("Wys³ano plik");
