@@ -1,3 +1,6 @@
+/**
+ * 
+ */
 package prozWebChatServer;
 
 import java.sql.*;
@@ -6,33 +9,58 @@ import java.util.HashMap;
 
 import oracle.jdbc.pool.OracleDataSource;
 
+/**
+ * Klasa odpowiadająca za współpracę aplikacji serwera z bazą danych Zawiera
+ * metody podłączenia do bazy danych oraz logowania danych (używana baza danych:
+ * Oracle)
+ * 
+ * @author Adam Sobieski
+ */
 public class WebChatDAO {
-	private static final String user = "asobiesk";
-	private static final String password = "LtM6rhz";
-	private static final String database = "jdbc:oracle:thin:asobiesk/asobiesk@//localhost:1521/xe";
-
-	private Connection conn = null;
+	private static final String user = "*****";
+	private static final String password = "*****";
+	private static final String database = "jdbc:oracle:thin:asobiesk/asobiesk@//localhost:1521/xe"; // Dane do
+																										// połączenia z
+																										// bazą danych
+	private Connection conn = null; // Aktywne połączenie z bazą
 	private static HashMap<String, Integer> ids = new HashMap<String, Integer>(); // SessionID-UserID in database
 
+	/**
+	 * Metoda służąca do nawiązania połączenia z bazą danych Aktywne połączenie
+	 * zapisuje w parametrze <code>conn</code>
+	 * 
+	 * @throws SQLException
+	 *             Błąd poleceń SQL
+	 */
 	public void connect() throws SQLException {
 		try {
-			System.out.println("Wszed�em do connecta!");
 			OracleDataSource ods = new OracleDataSource();
-			System.out.println("Jestem tutaj!");
 			ods.setURL(database);
 			ods.setUser(user);
 			ods.setPassword(password);
 			conn = ods.getConnection();
-			System.out.println("Po��czono z baz� danych!");
 
 		} catch (SQLException s) {
 			System.out.println("Failed to connect database" + s.getMessage());
 		}
 	}
 
+	/**
+	 * Metoda loguje użytkownika aplikacji do bazy danych Pobiera z bazy danych
+	 * najwyższy obecny identyfikator użytkownika, przypisuje nowemu użytkownikowi
+	 * ów identyfikator zwiększony o jeden oraz loguje parę sesja-identyfikator do
+	 * mapy <code>ids</code>. Następnie przy pomocy polecenia SQL zapisuje:
+	 * (1)Identyfikator (2)Login (3)Datę zalogowania do bazy danych *
+	 * 
+	 * @param login
+	 *            Nazwa użytkownika
+	 * @param sessionId
+	 *            ID sesji
+	 * @throws SQLException
+	 *             Błąd poleceń SQL
+	 */
 	public void LogUser(String login, String sessionId) throws SQLException {
 		try {
-			System.out.println("Loguje usera do bd");
 			java.util.Date date = new Date();
 			Object param = new java.sql.Timestamp(date.getTime());
 			Statement statement = conn.createStatement();
@@ -54,9 +82,20 @@ public class WebChatDAO {
 
 	}
 
+	/**
+	 * Metoda loguje wiadomość do bazy danych. Zapisuje do bazy danych (1)Datę
+	 * nadania wiadomości (2)ID nadawcy (3)Login nadawcy (4)Pierwsze 99 znaków
+	 * wiadomości
+	 * 
+	 * @param login
+	 *            Nazwa użytkownika
+	 * @param message
+	 *            Wiadomość
+	 * @param sessionId
+	 *            Sesja
+	 */
 	public void LogMessage(String login, String message, String sessionId) {
 		try {
-			System.out.println("Loguje wiadomo�� do bd");
 			java.util.Date date = new Date();
 			Object param = new java.sql.Timestamp(date.getTime());
 			int userId = ids.get(sessionId).intValue();
@@ -72,9 +111,20 @@ public class WebChatDAO {
 		}
 	}
 
+	/**
+	 * Metoda loguje plik do bazy danych Zapisuje do bazy danych (1)Datę nadania
+	 * pliku (2)ID nadawcy (3)Nazwę pliku (4)Login nadawcy
+	 * 
+	 * @param login
+	 *            Nazwa użytkownika (nadawcy)
+	 * @param Filename
+	 *            Nazwa pliku
+	 * @param sessionId
+	 * 
+	 *            Sesja
+	 */
 	public void LogFile(String login, String Filename, String sessionId) {
 		try {
-			System.out.println("Loguje plik do bd");
 			java.util.Date date = new Date();
 			Object param = new java.sql.Timestamp(date.getTime());
 			int userId = ids.get(sessionId).intValue();

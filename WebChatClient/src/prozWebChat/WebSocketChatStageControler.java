@@ -1,3 +1,6 @@
+/**
+ * Klasy aplikacji klienta
+ */
 package prozWebChat;
 
 import java.io.File;
@@ -8,7 +11,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.ByteBuffer;
-
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
@@ -36,6 +40,12 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.stage.FileChooser;
 
+/**
+ * Kontroler sceny zawierający obsługę zdarzeń, komunikację z serwerem oraz
+ * współpracę z FXML-em.
+ * 
+ * @author Adam Sobieski
+ */
 public class WebSocketChatStageControler {
 
 	@FXML
@@ -57,19 +67,24 @@ public class WebSocketChatStageControler {
 	@FXML
 	Label lblFile;
 
-	private String user;
-	private WebSocketClient webSocketClient;
-	private Clip clip = null;
-	private boolean sound = true;
-	private ByteBuffer storedFile = null;
+	private String user = null; // zapamiętany login
+	private WebSocketClient webSocketClient; // obsługa gniazda
+	private Clip clip = null; // plik dzwiękowy
+	private boolean sound = true; // zmienna określa, czy dzwięk jest włączony (true) czy wyłączony (false)
+	private ByteBuffer storedFile = null; // aktualnie przechowywany plik (ostatni dodany)
+	private String privateKey = null; // unikalny klucz do szyfrowania/deszyfrowania wiadomości
 
-
+	/**
+	 * Inicjalizacja kontrolera wywołany jest konstruktor podklasy WebSocketClient
+	 * odpowiedzialnej za komunikację z serwerem oraz zainicjalizowany zostaje klip
+	 * dzwiękowy (odtwarzany przy wiadomości)
+	 */
 	@FXML
 	private void initialize() {
 		System.out.println("Dziala");
 		webSocketClient = new WebSocketClient();
 		user = userTextField.getText();
-		System.out.println("Dzia�a");
+		System.out.println("Dzia�a");
 		try {
 			// Open an audio input stream.
 			File soundFile = new File("C:\\Users\\Adam\\eclipse-workspace\\test\\src\\test\\sound.wav");
@@ -87,103 +102,142 @@ public class WebSocketChatStageControler {
 		}
 	}
 
+	/**
+	 * Obsługa kliknięcia w przycisk Set ustawienie loginu
+	 * 
+	 * @throws IOException
+	 */
 	@FXML
 	private void btnSet_Click() throws IOException {
 		System.out.println("Set");
 		if (userTextField.getText().isEmpty()) {
 			return;
 		}
-		user = userTextField.getText();
+		user = userTextField.getText(); // pole USER ustawiane
 		btnSend.setDisable(false);
 		btnSet.setDisable(true);
 		btnFile.setDisable(false);
 		userTextField.setDisable(true);
 		webSocketClient.sendUsername(user);
-		
 	}
 
+	/**
+	 * Obsługa zdarzenia przycisku Send zainicjalizowane wysyłanie wiadomości
+	 */
 	@FXML
 	private void btnSend_Click() {
 		System.out.println("Send");
-		if (messageTextField.getText().isEmpty())
+		if (messageTextField.getText().isEmpty()) // nie wysyłaj pustego stringa
 			return;
 		webSocketClient.sendMessage(messageTextField.getText());
 		messageTextField.clear();
 	}
 
+	/**
+	 * Obsługa zdarzenia przycisku Sound włączanie/wyłączanie dzwięku
+	 */
 	@FXML
 	private void btnSound_Click() {
+		System.out.println(privateKey);
 		if (sound == true) {
 			sound = false;
 			btnSound.setText("Sound OFF");
 		} else {
 			sound = true;
 			btnSound.setText("Sound ON");
-
 		}
-
 	}
 
+	/**
+	 * Obsługa zdarzenia przycisku Download zapisanie pliku na dysku
+	 * 
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
 	@FXML
 	private void btnDownload_Click() throws FileNotFoundException, IOException {
-		if (storedFile != null) {
-			FileChooser fileChooser = new FileChooser();
-			fileChooser.setTitle("Save file");
-			File directory = fileChooser.showSaveDialog(null);
-			if (directory != null) {
-				FileOutputStream output = new FileOutputStream(directory.getAbsolutePath());
-				output.write(storedFile.array());
-				output.close();
-
+		try {
+			if (storedFile != null) {
+				FileChooser fileChooser = new FileChooser();
+				fileChooser.setTitle("Save file");
+				File directory = fileChooser.showSaveDialog(null);
+				if (directory != null) {
+					FileOutputStream output = new FileOutputStream(directory.getAbsolutePath());
+					output.write(storedFile.array());
+					output.close();
+				}
 			}
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * Obsługa kliknięcia klawisza ENTER - wywołanie zdarzenia przycisku SEND
+	 * 
+	 * @param key
+	 *            naciśnięty klawisz
+	 */
 	@FXML
 	private void messageKeyClicked(KeyEvent key) {
 		if (key.getCode() == KeyCode.ENTER && !btnSend.isDisabled()) {
 			btnSend_Click();
 		}
-
 	}
 
+	/**
+	 * Obsługa kliknięcia klawisza ENTER - wywołanie zdarzenia przycisku SET
+	 * 
+	 * @param key
+	 *            naciśnięty klawisz
+	 * @throws IOException
+	 */
 	@FXML
 	private void loginKeyClicked(KeyEvent key) throws IOException {
 		if (key.getCode() == KeyCode.ENTER && !btnSet.isDisabled())
 			btnSet_Click();
 	}
 
+	/**
+	 * Obsługa zdarzenia przycisku File wybór pliku, inicjalizacja przesłania pliku
+	 * 
+	 * @throws IOException
+	 * @throws EncodeException
+	 */
 	@FXML
 	private void btnFile_Clicked() throws IOException, EncodeException {
-		System.out.println("Dzia�a!!!!!");
 		FileChooser fileChooser = new FileChooser();
 		fileChooser.setTitle("Open Resource File");
 		File myFile = fileChooser.showOpenDialog(null);
+		if(myFile == null)
+			return;
+		if(myFile.length() >= 1024*1024*4) //sprawdzenie rozmiaru pliku - max 4Mb
+		{
+			System.out.println("Plik za duży!");
+			return;
+		}
 		byte[] byteArray = getBytesFromFile(myFile);
 		ByteBuffer buffer = ByteBuffer.wrap(byteArray);
 		String name = myFile.getName();
 		webSocketClient.sendMessage(buffer, name);
-
 	}
 
-	// Returns the contents of the file in a byte array.
+	/**
+	 * Konwersja z typu File na tablicę bajtów potrzebna do przesłania pliku poprzez
+	 * ByteBuffer
+	 * 
+	 * @param file
+	 *            Plik do przesłania
+	 * @return Plik w postaci tablicy bajtów
+	 * @throws IOException
+	 */
 	private static byte[] getBytesFromFile(File file) throws IOException {
-		// Get the size of the file
 		long length = file.length();
-
-		// You cannot create an array using a long type.
-		// It needs to be an int type.
-		// Before converting to an int type, check
-		// to ensure that file is not larger than Integer.MAX_VALUE.
 		if (length > Integer.MAX_VALUE) {
-			// File is too large
-			throw new IOException("File is too large!");
+			throw new IOException("File is too large!"); // Ograniczenie rozmiaru pliku
 		}
-
-		// Create the byte array to hold the data
 		byte[] bytes = new byte[(int) length];
 
-		// Read in the bytes
 		int offset = 0;
 		int numRead = 0;
 
@@ -196,13 +250,17 @@ public class WebSocketChatStageControler {
 			is.close();
 		}
 
-		// Ensure all the bytes have been read in
 		if (offset < bytes.length) {
 			throw new IOException("Could not completely read file " + file.getName());
 		}
 		return bytes;
 	}
 
+	/**
+	 * Zamykanie sesji
+	 * 
+	 * @param closeReason
+	 */
 	public void closeSession(CloseReason closeReason) {
 		try {
 			webSocketClient.session.close(closeReason);
@@ -215,53 +273,161 @@ public class WebSocketChatStageControler {
 		return user;
 	}
 
+	/**
+	 * Szyfrowanie wiadomości algorytmem Cezara na podstawie otrzymanego od serwera
+	 * klucza
+	 * 
+	 * @param  message wiadomość
+	 *            (plaintext)
+	 * @return Zaszyfrowana wiadomość
+	 */
+	public String encryptMessage(String message) {
+		try {
+			System.out.println("===Wchodze do encrypta===");
+			System.out.println("===Szyfruje wiadomosc " + message + " // kluczem: " + privateKey);
+			StringBuffer encrypted = new StringBuffer(); // Bufor do tworzenia nowego, zaszyfrowanego stringa
+			for (int i = 0; i < message.length(); ++i) { // Przejście po każdym znaku wiadomości
+				int newChar = (int) message.charAt(i) + privateKey.charAt(i % 15); // Przesunięcie o odpowiadającą
+																					// wartość klucza (szyfr Cezara)
+				encrypted.append((char) newChar); // Dodanie nowego znaku do wyjściowego bufora
+			}
+			String encryptedMessage = encrypted.toString();
+			System.out.println("Zaszyfrowana: " + encryptedMessage);
+			return encryptedMessage;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	/**
+	 * Deszyfrowanie wiadomości algorytmem Cezara na podstawie otrzymanego od
+	 * serwera klucza
+	 * 
+	 * @param message zaszyfrowana
+	 *            wiadomość
+	 * @return Wiadomość (plaintext)
+	 */
+	public String decryptMessage(String message) {
+		try {
+			StringBuffer decrypted = new StringBuffer(); // analogicznie jak w funkcji powyżej
+			for (int i = 0; i < message.length(); ++i) {
+				int newChar = (int) message.charAt(i) - privateKey.charAt(i % 15);
+				decrypted.append((char) newChar);
+			}
+			String encryptedMessage = decrypted.toString();
+			System.out.println("Odszyfrowana: " + encryptedMessage);
+			return encryptedMessage;
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+
+	/**
+	 * Klasa <code>WebSocketClient</code> - klasa zagnieżdżona odpowiadająca za
+	 * komunikację aplikacji z serwerem
+	 * 
+	 * @author Adam Sobieski
+	 *
+	 */
 	@ClientEndpoint
 	public class WebSocketClient {
-		private Session session;
-		private boolean fileJustReceived = false;
+		private Session session; // Sesja połączenia z serwerem
+		private boolean fileJustReceived = false; // Pomocnicza zmienna mówiąca, czy czekamy na obsługę nazwy pliku
 
-
+		/**
+		 * Połączenie z gniazdem serwera
+		 */
 		public WebSocketClient() {
 			connectToWebSocket();
-
 		}
 
+		/**
+		 * Metoda wywoływana domyślnie przy otworzeniu sesji
+		 * 
+		 * @param session
+		 */
 		@OnOpen
 		public void onOpen(Session session) {
 			System.out.println("Connection is opened.");
 			this.session = session;
 		}
 
+		/**
+		 * Metoda wywoływana domyślnie przy zakończeniu sesji
+		 * 
+		 * @param closeReason
+		 */
 		@OnClose
 		public void onClose(CloseReason closeReason) {
 			System.out.println("Connection is closed: " + closeReason.getReasonPhrase());
 		}
 
+		/**
+		 * Metoda wywoływana domyślnie przy błędzie
+		 * 
+		 * @param throwable
+		 *            Typ błędu
+		 */
 		@OnError
 		public void onError(Throwable throwable) {
 			System.out.println("Error occured");
 			throwable.printStackTrace();
 		}
 
+		/**
+		 * Metoda wywoływana w momencie otrzymania od serwera wiadomości tekstowej Jeśli
+		 * flaga fileJustReceived jest ustawiona na wartość TRUE, metoda obsługuje
+		 * otrzymanie nazwy uprzednio otrzymanego pliku. W przeciwnym razie obsługuje
+		 * otrzymanie "normalnej" wiadomości, czyli deszyfruje ją i umieszcza w oknie
+		 * tekstowym aplikacji (wywołując dzwięk)
+		 * 
+		 * @param message
+		 *            Otrzymana wiadomość (String)
+		 * @param session
+		 *            Sesja
+		 */
 		@OnMessage
 		public void onMessage(String message, Session session) {
-			if(fileJustReceived)
-			{
-				fileJustReceived = false;
-				String filename = message;
-				Platform.runLater(() -> {
-					lblFile.setText("File received: " + filename);
-				});
-			}
-			chatTextArea.setText(chatTextArea.getText() + message + "\n");
-			System.out.println("Message was received");
-			if (sound) {
-				clip.start();
-				clip.setMicrosecondPosition(0);
+			try {
+				if (fileJustReceived) { // Jeśli właśnie dostaliśmy plik
+					fileJustReceived = false; // ...to ta sytuacja jest już obsługiwana
+					String filename = message;
+					Platform.runLater(() -> {
+						lblFile.setText("File received: " + filename); // ustawienie komunikatu z nazwą pliku
+					});
+					return;
+				} else if (user == null || user.length() == 0) // privateKey received
+				{
+					privateKey = message;
+					return;
+
+				}
+				String decrypted = decryptMessage(message);
+				chatTextArea.setText(chatTextArea.getText() + decrypted + "\n");
+				System.out.println("Message was received");
+				if (sound) {
+					clip.start();
+					clip.setMicrosecondPosition(0);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 
 		}
 
+		/**
+		 * Metoda wywoływana w momencie otrzymania pliku wywołująca dzwięk oraz
+		 * ustawiająca flagę fileJustReceived
+		 * 
+		 * @param transferedFile
+		 *            otrzymany Plik
+		 * @param session
+		 *            sesja
+		 * @throws IOException
+		 */
 		@OnMessage
 		@FXML
 		public void onMessage(ByteBuffer transferedFile, Session session) throws IOException {
@@ -277,6 +443,9 @@ public class WebSocketChatStageControler {
 
 		}
 
+		/**
+		 * Metoda łącząca aplikację klienta z serwerem
+		 */
 		private void connectToWebSocket() {
 			WebSocketContainer webSocketContainer = ContainerProvider.getWebSocketContainer();
 			try {
@@ -287,25 +456,52 @@ public class WebSocketChatStageControler {
 			}
 		}
 
+		/**
+		 * Wysyłanie wiadomości tekstowej wywołanie metody szyfrującej i przesłanie
+		 * zaszyfrowanej wiadomości na serwer
+		 * 
+		 * @param message
+		 *            Wiadomość
+		 */
 		public void sendMessage(String message) {
 			try {
 				chatTextArea.positionCaret(chatTextArea.getText().length());
 				System.out.println("Message was sent: " + message);
-				session.getBasicRemote().sendText(user + ": " + message);
+				String toSend = user + ": " + message;
+				String encrypted = encryptMessage(toSend);
+				System.out.println("Message encrypted: " + encrypted);
+				session.getBasicRemote().sendText(encrypted);
 
-			} catch (IOException ex) {
+			} catch (Exception ex) {
 				ex.printStackTrace();
 				System.out.println("Jest error");
 			}
 		}
-		
-		public void sendUsername(String name) throws IOException
-		{
+
+		/**
+		 * Metoda wysyła serwerowi ustawiony przez Użytkownika login wywoływana tylko
+		 * raz w czasie sesji
+		 * 
+		 * @param name
+		 *            Ustalony login
+		 * @throws IOException
+		 */
+		public void sendUsername(String name) throws IOException {
 			session.getBasicRemote().sendText(name);
-			System.out.println("Wysy�am login systemowi!");
+			System.out.println("Wysy�am login systemowi!");
 
 		}
 
+		/**
+		 * Metoda przesyłająca serwerowi plik
+		 * 
+		 * @param transferedFile
+		 *            Plik
+		 * @param name
+		 *            Nazwa pliku
+		 * @throws IOException
+		 * @throws EncodeException
+		 */
 		public void sendMessage(ByteBuffer transferedFile, String name) throws IOException, EncodeException {
 			session.getBasicRemote().sendBinary(transferedFile);
 			session.getBasicRemote().sendText(name);
