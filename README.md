@@ -1,2 +1,2 @@
 # WebChat
-[Java] Repository contains web messenger project created for event-oriented programming course.
+Web messenger project created for event-oriented programming course at Warsaw University of Technology.
